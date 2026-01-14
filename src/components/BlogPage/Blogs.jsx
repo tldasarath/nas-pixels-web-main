@@ -123,7 +123,7 @@ export default function BlogPage() {
             {paginatedBlogs.map((blog) => (
               <Link
                 key={blog.id}
-                href={`/blogs/${blog.slug}`}
+                href={`/blog/${blog.slug}`}
                 className="blog-card group rounded-xl overflow-hidden bg-[#16572D]
                 hover:shadow-[0_0_30px_rgba(0,255,120,0.3)] transition"
               >

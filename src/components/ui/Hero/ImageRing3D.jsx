@@ -2,16 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { ArrowRight } from "lucide-react";
-import { ModernButton } from "@/components/common/Button/ModernButton";
 import { Zen_Dots } from "next/font/google";
+
 const zenDots = Zen_Dots({
   subsets: ["latin"],
   weight: "400",
 });
+
 const DEPTH = 800;
 
-// Default media (images still work exactly the same)
 const defaultImages = Array.from(
   { length: 10 },
   (_, i) => `https://picsum.photos/id/${i + 32}/600/400/`
@@ -19,67 +18,77 @@ const defaultImages = Array.from(
 
 const isVideo = (url = "") => url.endsWith(".mp4") || url.endsWith(".webm");
 
-export default function ImageRing3D({
-  images = defaultImages,
-  title = "Transform Visual Communication with Enterprise-Grade LED Display Solutions",
-  buttonText = "Our Products",
-  onButtonClick = () => {},
-  backgroundImage = "",
-}) {
+export default function ImageRing3D({ images = defaultImages }) {
   const IMAGE_COUNT = images.length;
   const ROTATION_STEP = 360 / IMAGE_COUNT;
 
   const ringRef = useRef(null);
   const imgsRef = useRef([]);
+  const titlesRef = useRef([]);
   const xPos = useRef(0);
   const autoRotateTween = useRef(null);
-  const heroRef = useRef(null);
+
+  /* ================= TITLES ================= */
+  const titles = [
+    [
+      "Transform Visual Communication",
+      "with Enterprise-Grade LED Display Solutions",
+    ],
+    ["Power Your Brand Presence", "with High-Impact LED Experiences"],
+    ["Enterprise LED Systems", "Engineered for Performance & Scale"],
+  ];
 
   useEffect(() => {
     const ring = ringRef.current;
     const imgs = imgsRef.current;
-    const hero = heroRef.current;
 
-    /* ---------------- HERO ANIMATION ---------------- */
-    gsap.from(hero.children, {
-      y: 50,
-      opacity: 0,
-      stagger: 0.2,
-      duration: 1,
-      ease: "power3.out",
-      delay: 0.3,
+    /* ================= TITLE LOOP ANIMATION ================= */
+    const tl = gsap.timeline({ repeat: -1 });
+
+    titlesRef.current.forEach((titleEl, index) => {
+      // Enter from right
+      tl.fromTo(
+        titleEl,
+        { x: 120, opacity: 0 },
+        {
+          x: 0,
+          opacity: 1,
+          duration: 1,
+          ease: "power4.out",
+        }
+      )
+        // Stay visible
+        .to({}, { duration: 2 })
+        // Exit to left
+        .to(titleEl, {
+          x: -120,
+          opacity: 0,
+          duration: 0.8,
+          ease: "power3.in",
+        });
     });
 
-    /* ---------------- INIT ---------------- */
+    /* ================= RING INIT ================= */
     gsap.set(ring, {
       rotationY: 180,
-      cursor: "grab",
       transformStyle: "preserve-3d",
-    });
-
-    /* ---------------- AUTO ROTATE ---------------- */
-    autoRotateTween.current = gsap.to(ring, {
-      rotationY: "-=360",
-      duration: 20,
-      ease: "none",
-      repeat: -1,
-      onUpdate: () => {
-        imgs.forEach((_, i) =>
-          gsap.set(imgs[i], { backgroundPosition: getBgPos(i) })
-        );
-      },
+      cursor: "grab",
     });
 
     gsap.set(imgs, {
       rotateY: (i) => i * -ROTATION_STEP,
       transformOrigin: `50% 50% ${DEPTH}px`,
       z: -DEPTH,
-      backgroundSize: "cover",
-      backgroundPosition: (i) => getBgPos(i),
       backfaceVisibility: "hidden",
     });
 
-    /* ---------------- ENTRANCE ---------------- */
+    autoRotateTween.current = gsap.to(ring, {
+      rotationY: "-=360",
+      duration: 25,
+      ease: "none",
+      repeat: -1,
+    });
+
     gsap.from(imgs, {
       y: 200,
       opacity: 0,
@@ -88,63 +97,32 @@ export default function ImageRing3D({
       ease: "expo.out",
     });
 
-    /* ---------------- HOVER ---------------- */
-    imgs.forEach((img) => {
-      if (!img) return;
+    /* ================= DRAG ================= */
+    const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
 
-      const onEnter = () => {
-        gsap.to(imgs, {
-          opacity: (i, t) => (t === img ? 1 : 0.5),
-          ease: "power3.out",
-        });
-      };
-
-      const onLeave = () => {
-        gsap.to(imgs, {
-          opacity: 1,
-          ease: "power2.inOut",
-        });
-      };
-
-      img.addEventListener("mouseenter", onEnter);
-      img.addEventListener("mouseleave", onLeave);
-
-      // cleanup (important)
-      img._onEnter = onEnter;
-      img._onLeave = onLeave;
-    });
-
-    /* ---------------- DRAG ---------------- */
     const dragStart = (e) => {
       xPos.current = getClientX(e);
-      gsap.set(ring, { cursor: "grabbing" });
       autoRotateTween.current.pause();
+      gsap.set(ring, { cursor: "grabbing" });
       window.addEventListener("mousemove", drag);
       window.addEventListener("touchmove", drag);
     };
 
     const drag = (e) => {
-      const currentX = getClientX(e);
-      const delta = currentX - xPos.current;
+      const delta = getClientX(e) - xPos.current;
+      xPos.current = getClientX(e);
 
       gsap.to(ring, {
         rotationY: `-=${delta}`,
         duration: 0.3,
-        onUpdate: () => {
-          imgs.forEach((_, i) =>
-            gsap.set(imgs[i], { backgroundPosition: getBgPos(i) })
-          );
-        },
       });
-
-      xPos.current = currentX;
     };
 
     const dragEnd = () => {
+      autoRotateTween.current.resume();
+      gsap.set(ring, { cursor: "grab" });
       window.removeEventListener("mousemove", drag);
       window.removeEventListener("touchmove", drag);
-      gsap.set(ring, { cursor: "grab" });
-      autoRotateTween.current.resume();
     };
 
     window.addEventListener("mousedown", dragStart);
@@ -153,69 +131,51 @@ export default function ImageRing3D({
     window.addEventListener("touchend", dragEnd);
 
     return () => {
+      tl.kill();
+      autoRotateTween.current?.kill();
       window.removeEventListener("mousedown", dragStart);
       window.removeEventListener("mouseup", dragEnd);
       window.removeEventListener("touchstart", dragStart);
       window.removeEventListener("touchend", dragEnd);
-      autoRotateTween.current?.kill();
-      imgsRef.current.forEach((img) => {
-        if (!img) return;
-        img.removeEventListener("mouseenter", img._onEnter);
-        img.removeEventListener("mouseleave", img._onLeave);
-      });
     };
-  }, [images, IMAGE_COUNT, ROTATION_STEP]);
+  }, []);
 
-  /* ---------------- HELPERS ---------------- */
-  const getClientX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
-
-  const getBgPos = (i) => {
-    const rotY = gsap.getProperty(ringRef.current, "rotationY");
-    return `${
-      100 -
-      (gsap.utils.wrap(0, 360, rotY - 180 - i * ROTATION_STEP) / 360) * 500
-    }px 0px`;
-  };
-
+  /* ================= JSX ================= */
   return (
-    <div
-      className="relative w-screen h-screen overflow-hidden"
-      // style={{
-      //   backgroundImage: backgroundImage ? `url(${backgroundImage})` : "none",
-      //   backgroundSize: "cover",
-      //   backgroundPosition: "center",
-      //   backgroundColor: backgroundImage ? "transparent" : "#000",
-      // }}
-    >
-      {/* Hero Section */}
-      <div
-        ref={heroRef}
-        className="absolute -top-5 md:top-0 left-0 right-0 z-10 flex flex-col items-center justify-center pt-16 pb-8 px-4 mb-10 md:mb-0"
-      >
-        <h1 className={`${zenDots.className}  text-xl md:text-[40px] leading-[1.8rem] md:leading-[2.8rem] font-bold text-white text-center max-w-4xl mb-8`}>
-          {title}
-        </h1>
+    <div className="relative w-screen h-screen overflow-hidden bg-black">
+      {/* HERO TITLES */}
+      <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center min-h-[45vh] px-4 text-center">
+        {titles.map(([line1, line2], i) => (
+          <h1
+            key={i}
+            ref={(el) => (titlesRef.current[i] = el)}
+            className={`${zenDots.className} absolute text-2xl md:text-3xl lg:text-4xl font-bold text-white max-w-4xl opacity-0`}
+          >
+            <span className="block">{line1}</span>
+            <span className="block mt-2">{line2}</span>
+          </h1>
+        ))}
       </div>
 
-      {/* 3D Carousel */}
-      <div className="absolute inset-0" style={{ perspective: "2000px" }}>
+      {/* 3D RING */}
+      <div
+        className="absolute inset-x-0 bottom-[18%] h-[50vh]"
+        style={{ perspective: "2000px" }}
+      >
         <div
           ref={ringRef}
           className="absolute left-1/2 top-1/2 w-full h-full"
-          style={{
-            transform: "translate(-50%, -50%)",
-            transformStyle: "preserve-3d",
-          }}
+          style={{ transform: "translate(-50%, -50%)" }}
         >
-          {Array.from({ length: IMAGE_COUNT }).map((_, i) => (
+          {images.map((src, i) => (
             <div
               key={i}
               ref={(el) => (imgsRef.current[i] = el)}
-              className="absolute left-1/2 top-1/2 w-[500px] h-[350px] -ml-[225px] -mt-[150px] rounded-lg overflow-hidden"
+              className="absolute left-1/2 top-1/2 w-[450px] md:w-[500px] h-[300px] md:h-[350px] -ml-[250px] -mt-[175px] rounded-xl overflow-hidden"
             >
-              {isVideo(images[i]) ? (
+              {isVideo(src) ? (
                 <video
-                  src={images[i]}
+                  src={src}
                   autoPlay
                   muted
                   loop
@@ -224,10 +184,10 @@ export default function ImageRing3D({
                 />
               ) : (
                 <img
-                  src={images[i]}
-                  alt=""
+                  src={src}
                   draggable={false}
                   className="w-full h-full object-cover pointer-events-none"
+                  alt=""
                 />
               )}
             </div>

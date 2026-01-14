@@ -103,7 +103,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="antialiased" suppressHydrationWarning>
-        <LoaderProvider>
+        {/* <LoaderProvider> */}
 
         <SmoothScrollProvider>
           <Navbar />
@@ -116,7 +116,7 @@ export default function RootLayout({ children }) {
           </main>
           <Footer />
         </SmoothScrollProvider>
-        </LoaderProvider>
+        {/* </LoaderProvider> */}
       </body>
     </html>
   );
