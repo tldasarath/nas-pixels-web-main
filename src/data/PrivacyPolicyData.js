@@ -1,0 +1,16 @@
+export const PRIVACY_POLICY_SECTIONS = [
+  { id: "introduction", label: "Introduction" },
+  { id: "about", label: "About NAS PIXEL" },
+  { id: "usage", label: "Use of Website" },
+  { id: "ip", label: "Intellectual Property" },
+  { id: "engagements", label: "Client Engagements" },
+  { id: "payments", label: "Payments & Refunds" },
+  { id: "confidentiality", label: "Confidentiality" },
+  { id: "liability", label: "Limitation of Liability" },
+  { id: "thirdparty", label: "Third-Party Services" },
+  { id: "privacy", label: "Privacy Policy" },
+  { id: "cookies", label: "Cookies Policy" },
+  { id: "amendments", label: "Amendments" },
+  { id: "law", label: "Governing Law" },
+  { id: "contact", label: "Contact Details" },
+];
